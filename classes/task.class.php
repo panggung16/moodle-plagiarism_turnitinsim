@@ -75,6 +75,8 @@ class plagiarism_turnitinsim_task {
     public function send_queued_submissions() {
         global $DB;
 
+        $logger = new plagiarism_turnitinsim_logger();
+
         // Should this task be run?
         $taskname = get_string('tasksendqueuedsubmissions', 'plagiarism_turnitinsim');
         if (!$this->run_task($taskname)) {
@@ -101,10 +103,17 @@ class plagiarism_turnitinsim_task {
             TURNITINSIM_SUBMISSION_SEND_LIMIT);
 
         // Create each submission in Turnitin and upload submission.
+        $count = 1;
         foreach ($submissions as $submission) {
+            $logger->debug('Iteration '.$count. '. Processing submission id: '.$submission->id);
             // Skip if the course doesn't exist or the course is pending deletion.
             if (!$DB->get_record('course_modules', array('id' => $submission->cm, 'deletioninprogress' => 0))) {
+
+                $logger->debug('Submission id: '.$submission->id.'. This submission belonged to a deleted course/assignment. Submission will be skipped.');
+                $count++;
                 continue;
+            } else {
+                $logger->debug('Submission id: '.$submission->id.'. This submission did not belong to a deleted course/assignment.');
             }
 
             // Reset headers.
@@ -113,7 +122,9 @@ class plagiarism_turnitinsim_task {
             $tssubmission = new plagiarism_turnitinsim_submission($this->tsrequest, $submission->id);
 
             if ($tssubmission->getstatus() == TURNITINSIM_SUBMISSION_STATUS_QUEUED) {
+                $logger->debug('Submission id: '.$submission->id.'. Attempt to create in Turnitin.');
                 $tssubmission->create_submission_in_turnitin();
+                $logger->debug('Submission id: '.$submission->id.'. This submission was created in Turnitin.');
             }
 
             if (!empty($tssubmission->getturnitinid())) {
@@ -124,6 +135,7 @@ class plagiarism_turnitinsim_task {
             }
 
             $tssubmission->update();
+            $count++;
         }
 
         return true;
