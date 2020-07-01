@@ -977,15 +977,15 @@ class plagiarism_turnitinsim_submission {
         // Send correct user role in request.
         if (has_capability('plagiarism/turnitinsim:viewfullreport', context_module::instance($this->getcm()))) {
             $request['viewer_default_permission_set'] = TURNITINSIM_ROLE_INSTRUCTOR;
+
+            // Override viewer permissions depending on admin options.
+            $request['viewer_permissions'] = $this->create_report_viewer_permissions();
+
+            // Add similarity overrides - all true for now but this may change in future.
+            $request['similarity'] = $this->create_similarity_overrides();
         } else {
             $request['viewer_default_permission_set'] = TURNITINSIM_ROLE_LEARNER;
         }
-
-        // Override viewer permissions depending on admin options.
-        $request['viewer_permissions'] = $this->create_report_viewer_permissions();
-
-        // Add similarity overrides - all true for now but this may change in future.
-        $request['similarity'] = $this->create_similarity_overrides();
 
         // Make request to get Cloud Viewer URL.
         try {
